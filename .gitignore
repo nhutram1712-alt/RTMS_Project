@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+venv/
+env/
+ENV/
+.env
+
+# IDEs
+.vscode/
+.idea/
+
+# Django
+*.log
+media/
+
+# KHÔNG LOẠI TRỪ db.sqlite3 theo yêu cầu (để theo dõi DB)
+!db.sqlite3
+!db.sqlite3.backup

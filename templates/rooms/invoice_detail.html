@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load room_tags %}
+{% block title %}Hóa đơn {{ invoice.room.name }} — {{ invoice.billing_month|date:"m/Y" }} — RTMS{% endblock %}
+{% block page_title %}Chi tiết hóa đơn{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <a href="{% url 'invoice_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <h5 class="mb-0 fw-bold">
+        Hóa đơn — Phòng {{ invoice.room.name }} — Tháng {{ invoice.billing_month|date:"m/Y" }}
+    </h5>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Chi tiết hóa đơn</span>
+                {% if invoice.status == 'nhap' %}
+                <span class="badge bg-secondary">Nháp</span>
+                {% elif invoice.status == 'chua_tt' %}
+                <span class="badge bg-warning text-dark">Chưa thanh toán</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <table class="table table-sm" style="font-size:0.875rem">
+                    <tr><td class="text-muted">Phòng</td><td class="fw-bold">{{ invoice.room.name }}</td></tr>
+                    <tr><td class="text-muted">Kỳ thanh toán</td><td>{{ invoice.billing_month|date:"m/Y" }}</td></tr>
+                    <tr><td class="text-muted">Ngày tạo</td><td>{{ invoice.created_at|date:"d/m/Y H:i" }}</td></tr>
+                </table>
+
+                <hr>
+                <h6 class="fw-bold mb-3">Chi tiết điện nước</h6>
+                <table class="table table-sm" style="font-size:0.875rem">
+                    <tr>
+                        <td class="text-muted">Chỉ số điện</td>
+                        <td>{{ invoice.old_electricity|floatformat:0 }} → {{ invoice.new_electricity|floatformat:0 }} kWh
+                        (tiêu thụ {{ invoice.new_electricity|subtract:invoice.old_electricity|floatformat:0 }} kWh)</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Chỉ số nước</td>
+                        <td>{{ invoice.old_water|floatformat:0 }} → {{ invoice.new_water|floatformat:0 }} khối
+                        (tiêu thụ {{ invoice.new_water|subtract:invoice.old_water|floatformat:0 }} khối)</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white fw-bold">
+                <i class="bi bi-calculator me-2"></i>Bảng tổng hóa đơn
+            </div>
+            <div class="card-body">
+                <div class="invoice-summary-row">
+                    <span class="label">Tiền phòng</span>
+                    <span class="amount">{{ invoice.base_rent|floatformat:0 }} đ</span>
+                </div>
+                <div class="invoice-summary-row">
+                    <span class="label">Tiền điện</span>
+                    <span class="amount">{{ invoice.get_electricity_cost|floatformat:0 }} đ</span>
+                </div>
+                <div class="invoice-summary-row">
+                    <span class="label">Tiền nước</span>
+                    <span class="amount">{{ invoice.get_water_cost|floatformat:0 }} đ</span>
+                </div>
+                <div class="invoice-summary-row">
+                    <span class="label">Dịch vụ (Rác + Internet)</span>
+                    <span class="amount">{{ invoice.get_service_cost|floatformat:0 }} đ</span>
+                </div>
+                <div class="invoice-summary-row">
+                    <span class="label">Phụ phí</span>
+                    <span class="amount">{{ invoice.extra_fee|floatformat:0 }} đ</span>
+                </div>
+                {% if invoice.extra_fee_reason %}
+                <div class="text-muted small ps-2" style="font-size:0.8rem">↳ {{ invoice.extra_fee_reason }}</div>
+                {% endif %}
+                <div class="invoice-total-row">
+                    <span>TỔNG CỘNG THANH TOÁN</span>
+                    <span class="total-amount">{{ invoice.total_amount|floatformat:0 }} đ</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

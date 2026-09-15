@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Báo hỏng — RTMS{% endblock %}
+{% block page_title %}Báo hỏng & Sửa chữa{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Form gửi yêu cầu -->
+    <div class="col-md-5 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-0 pt-4 pb-0">
+                <h6 class="fw-bold text-primary mb-0"><i class="bi bi-tools me-2"></i>Gửi yêu cầu mới</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Mô tả sự cố <span class="text-danger">*</span></label>
+                        <textarea name="description" class="form-control" rows="5" placeholder="VD: Vòi nước bị rỉ, bóng đèn hỏng..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-send me-1"></i> Gửi yêu cầu
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách yêu cầu -->
+    <div class="col-md-7 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-0 pt-4 pb-0">
+                <h6 class="fw-bold text-primary mb-0"><i class="bi bi-clock-history me-2"></i>Lịch sử yêu cầu</h6>
+            </div>
+            <div class="card-body p-0 mt-3">
+                {% if requests %}
+                <div class="list-group list-group-flush">
+                    {% for req in requests %}
+                    <div class="list-group-item py-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>{{ req.created_at|date:"d/m/Y H:i" }}</small>
+                            {% if req.status == 'pending' %}
+                            <span class="badge bg-warning text-dark rounded-pill">Chờ xử lý</span>
+                            {% else %}
+                            <span class="badge bg-success rounded-pill">Đã xử lý</span>
+                            {% endif %}
+                        </div>
+                        <p class="mb-0" style="white-space: pre-wrap;">{{ req.description }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-check2-circle text-success" style="font-size:3rem"></i>
+                    <p class="text-muted mt-2">Chưa có yêu cầu sửa chữa nào.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

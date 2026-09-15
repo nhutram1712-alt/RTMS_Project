@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Danh sách hóa đơn — RTMS{% endblock %}
+{% block page_title %}Danh sách hóa đơn{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="mb-0 fw-bold" style="color:#1e293b">
+        <i class="bi bi-receipt me-2" style="color:#2563eb"></i>Hóa đơn
+    </h5>
+</div>
+
+{% if invoices %}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0" style="font-size:0.875rem">
+            <thead style="background:#f8fafc">
+                <tr>
+                    <th class="px-4">Phòng</th>
+                    <th>Kỳ tháng</th>
+                    <th>Tiền phòng</th>
+                    <th>Tiền điện</th>
+                    <th>Tiền nước</th>
+                    <th>Dịch vụ</th>
+                    <th>Phụ phí</th>
+                    <th>Tổng cộng</th>
+                    <th>Trạng thái</th>
+                    <th>Chi tiết</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in invoices %}
+                <tr>
+                    <td class="px-4 fw-bold">{{ inv.room.name }}</td>
+                    <td>{{ inv.billing_month|date:"m/Y" }}</td>
+                    <td>{{ inv.base_rent|floatformat:0 }}</td>
+                    <td>{{ inv.get_electricity_cost|floatformat:0 }}</td>
+                    <td>{{ inv.get_water_cost|floatformat:0 }}</td>
+                    <td>{{ inv.get_service_cost|floatformat:0 }}</td>
+                    <td>{{ inv.extra_fee|floatformat:0 }}</td>
+                    <td class="fw-bold text-primary">{{ inv.total_amount|floatformat:0 }}</td>
+                    <td>
+                        {% if inv.status == 'nhap' %}
+                        <span class="badge bg-secondary">Nháp</span>
+                        {% elif inv.status == 'chua_tt' %}
+                        <span class="badge bg-warning text-dark">Chưa thanh toán</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'invoice_detail' inv.id %}"
+                           class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if inv.status == 'chua_tt' %}
+                        <button type="button" class="btn btn-sm btn-outline-warning" title="Gửi email nhắc nợ" data-bs-toggle="modal" data-bs-target="#emailModal{{ inv.id }}">
+                            <i class="bi bi-bell"></i>
+                        </button>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="emailModal{{ inv.id }}" tabindex="-1" aria-labelledby="emailModalLabel{{ inv.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content text-start">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="emailModalLabel{{ inv.id }}">Xác nhận gửi email</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Gửi email nhắc thanh toán cho khách thuê phòng <strong>{{ inv.room.name }}</strong>?</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                                        <form method="POST" action="{% url 'invoice_send_email' inv.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-primary">Đồng ý</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card text-center py-5">
+    <div class="card-body">
+        <i class="bi bi-receipt-cutoff" style="font-size:3rem; color:#d1d5db"></i>
+        <h5 class="mt-3 text-muted">Chưa có hóa đơn nào</h5>
+        <p class="text-muted small">Vào trang tổng quan → nhấn biểu tượng hóa đơn trên từng phòng để tạo hóa đơn</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

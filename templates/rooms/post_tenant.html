@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Bảng tin — RTMS{% endblock %}
+{% block page_title %}Thông báo từ Chủ trọ{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        {% if posts %}
+            <div class="row">
+            {% for post in posts %}
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-primary mb-1">{{ post.title }}</h5>
+                            <h6 class="card-subtitle mb-3 text-muted small"><i class="bi bi-clock me-1"></i>{{ post.created_at|date:"d/m/Y H:i" }}</h6>
+                            <p class="card-text" style="white-space: pre-wrap;">{{ post.content }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+            </div>
+        {% else %}
+            <div class="card border-0 shadow-sm text-center py-5">
+                <div class="card-body">
+                    <i class="bi bi-mailbox" style="font-size:3rem; color:#d1d5db"></i>
+                    <h5 class="mt-3 text-muted">Chưa có thông báo nào</h5>
+                    <p class="text-muted small">Chủ trọ chưa đăng bài viết hoặc thông báo nào trên bảng tin.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Quản lý Bảng tin — RTMS{% endblock %}
+{% block page_title %}Bảng tin / Thông báo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Form đăng bài -->
+    <div class="col-md-5 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-0 pt-4 pb-0">
+                <h6 class="fw-bold text-primary mb-0"><i class="bi bi-pencil-square me-2"></i>Đăng thông báo mới</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Tiêu đề <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control" placeholder="VD: Thông báo nghỉ lễ, Nội quy phòng trọ..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Nội dung <span class="text-danger">*</span></label>
+                        <textarea name="content" class="form-control" rows="6" placeholder="Nội dung chi tiết thông báo..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-send me-1"></i> Đăng bài
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách bài viết -->
+    <div class="col-md-7 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-0 pt-4 pb-0">
+                <h6 class="fw-bold text-primary mb-0"><i class="bi bi-list-ul me-2"></i>Các thông báo đã đăng</h6>
+            </div>
+            <div class="card-body p-0 mt-3">
+                {% if posts %}
+                <div class="list-group list-group-flush">
+                    {% for post in posts %}
+                    <div class="list-group-item py-4">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="me-3">
+                                <h6 class="fw-bold mb-1">{{ post.title }}</h6>
+                                <p class="text-muted small mb-2"><i class="bi bi-clock me-1"></i>{{ post.created_at|date:"d/m/Y H:i" }}</p>
+                                <p class="mb-0 text-dark" style="white-space: pre-wrap;">{{ post.content }}</p>
+                            </div>
+                            <div class="d-flex gap-2 text-nowrap">
+                                <a href="{% url 'post_edit' post.id %}" class="btn btn-sm btn-outline-secondary" title="Sửa">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="POST" action="{% url 'post_delete' post.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa" onclick="return confirm('Chắc chắn xóa thông báo này?');">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-newspaper" style="font-size:3rem; color:#d1d5db"></i>
+                    <p class="text-muted mt-2">Chưa có bài viết/thông báo nào.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load room_tags %}
+
+{% block title %}Trang chủ - RTMS{% endblock %}
+{% block page_title %}Trang chủ Người thuê{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Cột trái: Thông tin phòng -->
+    <div class="col-lg-5 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-home me-2"></i> Thông tin phòng đang thuê
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if assignment %}
+                    <div class="text-center mb-4">
+                        <h1 class="display-4 fw-bold text-primary mb-0">{{ assignment.room.name }}</h1>
+                        <span class="text-muted">Tầng {{ assignment.room.floor }}</span>
+                    </div>
+                    
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Diện tích</span>
+                            <span class="fw-bold">{{ assignment.room.area }} m²</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Giá thuê cơ bản</span>
+                            <span class="fw-bold text-primary">{{ assignment.room.base_rent|format_vnd }} đ/tháng</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Ngày bắt đầu thuê</span>
+                            <span class="fw-bold">{{ assignment.start_date|date:"d/m/Y" }}</span>
+                        </li>
+                        <li class="list-group-item px-0">
+                            <div class="text-muted mb-2">Tiện ích bao gồm:</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for amenity in assignment.room.get_amenities_list %}
+                                    <span class="badge bg-secondary">{{ amenity }}</span>
+                                {% empty %}
+                                    <span class="text-muted small">Không có</span>
+                                {% endfor %}
+                            </div>
+                        </li>
+                    </ul>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-exclamation-circle fa-3x mb-3 text-warning"></i>
+                        <h5>Chưa được xếp phòng</h5>
+                        <p>Bạn hiện tại chưa được xếp vào phòng nào. Vui lòng liên hệ Chủ trọ.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Cột phải: Lịch sử hóa đơn -->
+    <div class="col-lg-7 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-receipt me-2"></i> Lịch sử hóa đơn
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                {% if invoices %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="px-3">Kỳ (Tháng/Năm)</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inv in invoices %}
+                                    <tr>
+                                        <td class="px-3 fw-bold">{{ inv.month }}/{{ inv.year }}</td>
+                                        <td class="text-danger fw-bold">{{ inv.total_amount|format_vnd }} đ</td>
+                                        <td>
+                                            {% if inv.status == 'chua_thanh_toan' %}
+                                                <span class="badge bg-warning text-dark">Chưa thanh toán</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Đã thanh toán</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'invoice_detail' inv.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> Xem chi tiết
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-file-invoice fa-3x mb-3 text-light"></i>
+                        <h5>Chưa có hóa đơn nào</h5>
+                        <p>Lịch sử thanh toán sẽ xuất hiện tại đây.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

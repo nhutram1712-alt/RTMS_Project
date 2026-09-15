@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block title %}Tổng quan — RTMS{% endblock %}
+{% block page_title %}Tổng quan dãy trọ{% endblock %}
+
+{% block content %}
+<!-- Thống kê nhanh -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon" style="background:#dbeafe">
+                <i class="bi bi-house" style="color:#1d4ed8"></i>
+            </div>
+            <div>
+                <div class="stat-number">{{ total_rooms }}</div>
+                <div class="stat-label">Tổng phòng</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon" style="background:#dcfce7">
+                <i class="bi bi-house-check" style="color:#16a34a"></i>
+            </div>
+            <div>
+                <div class="stat-number">{{ available_rooms }}</div>
+                <div class="stat-label">Phòng trống</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon" style="background:#fef9c3">
+                <i class="bi bi-person-fill" style="color:#ca8a04"></i>
+            </div>
+            <div>
+                <div class="stat-number">{{ rented_rooms }}</div>
+                <div class="stat-label">Đang cho thuê</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon" style="background:#fee2e2">
+                <i class="bi bi-tools" style="color:#dc2626"></i>
+            </div>
+            <div>
+                <div class="stat-number">{{ repair_rooms }}</div>
+                <div class="stat-label">Sửa chữa</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Header danh sách phòng -->
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="mb-0 fw-bold" style="color:#1e293b">
+        <i class="bi bi-grid-1x2 me-2" style="color:#2563eb"></i>Danh sách phòng
+    </h5>
+    <a href="{% url 'room_create' %}" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-plus-lg"></i> Thêm phòng
+    </a>
+</div>
+
+{% if rooms %}
+<div class="row g-3">
+    {% for room in rooms %}
+    <div class="col-md-6 col-lg-4 col-xl-3">
+        <div class="room-card">
+            <div class="room-card-header">
+                <div>
+                    <div class="room-number">Phòng {{ room.name }}</div>
+                    <div class="room-floor">Tầng {{ room.floor }}</div>
+                </div>
+                <!-- Badge trạng thái -->
+                <span class="status-badge badge-{{ room.status }}">
+                    {{ room.get_status_display }}
+                </span>
+            </div>
+
+            <div class="room-card-body">
+                <div class="room-info-row">
+                    <span>Giá thuê</span>
+                    <span class="val">{{ room.base_rent|floatformat:0 }} đ</span>
+                </div>
+                <div class="room-info-row">
+                    <span>Diện tích</span>
+                    <span class="val">{{ room.area }} m²</span>
+                </div>
+                <div class="room-info-row">
+                    <span>Điện</span>
+                    <span class="val">{{ room.electricity_price|floatformat:0 }} đ/kWh</span>
+                </div>
+                <div class="room-info-row">
+                    <span>Nước</span>
+                    <span class="val">{{ room.water_price|floatformat:0 }} đ/khối</span>
+                </div>
+                {% if room.status == "dang_thue" or room.status == "da_coc" %}
+                {% with ta=room.tenant_assignment %}
+                {% if ta %}
+                <div class="room-info-row mt-1" style="border-top: 1px solid #f1f5f9; padding-top: 0.35rem">
+                    <span><i class="bi bi-person-fill" style="color:#2563eb"></i> Người thuê</span>
+                    <span class="val">{{ ta.tenant.get_full_name|default:ta.tenant.username }}</span>
+                </div>
+                <div class="room-info-row mt-1">
+                    <span><i class="bi bi-calendar-event" style="color:#ea580c"></i> Hết hạn HĐ</span>
+                    {% if ta.days_until_expiration != None %}
+                        {% if ta.days_until_expiration < 0 %}
+                            <span class="val text-danger fw-bold" title="Đã hết hạn">
+                                {{ ta.expiration_date|date:"d/m/Y" }}
+                            </span>
+                        {% elif ta.days_until_expiration <= 30 %}
+                            <span class="val text-warning fw-bold" title="Sắp hết hạn (còn {{ ta.days_until_expiration }} ngày)">
+                                {{ ta.expiration_date|date:"d/m/Y" }}
+                            </span>
+                        {% else %}
+                            <span class="val">
+                                {{ ta.expiration_date|date:"d/m/Y" }}
+                            </span>
+                        {% endif %}
+                    {% else %}
+                        <span class="val text-muted">Chưa có</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% endwith %}
+                {% endif %}
+
+
+                <!-- Cập nhật trạng thái nhanh (US02) -->
+                <form method="post" action="{% url 'room_status_update' room.id %}" class="mt-2">
+                    {% csrf_token %}
+                    <div class="d-flex gap-1">
+                        <select name="status" class="form-select form-select-sm" style="font-size:0.8rem">
+                            {% for val, label in status_choices %}
+                            <option value="{{ val }}" {% if room.status == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-primary" title="Lưu trạng thái">
+                            <i class="bi bi-check-lg"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="room-card-footer">
+                <!-- Nút tạo hóa đơn -->
+                <a href="{% url 'invoice_create' room.id %}"
+                   class="btn btn-sm btn-outline-success flex-fill"
+                   title="Tạo hóa đơn">
+                    <i class="bi bi-receipt me-1"></i>Hóa đơn
+                </a>
+                <!-- Nút sửa -->
+                <a href="{% url 'room_edit' room.id %}"
+                   class="btn btn-sm btn-outline-secondary"
+                   title="Chỉnh sửa phòng">
+                    <i class="bi bi-pencil"></i>
+                </a>
+                <!-- Nút xóa (disable nếu đang thuê hoặc đã cọc) -->
+                {% if room.can_delete %}
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        title="Xóa phòng"
+                        data-bs-toggle="modal"
+                        data-bs-target="#deleteModal{{ room.id }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-sm btn-outline-danger" disabled title="Không thể xóa phòng đang có người thuê">
+                    <i class="bi bi-trash"></i>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Modal xác nhận xóa -->
+        {% if room.can_delete %}
+        <div class="modal fade" id="deleteModal{{ room.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title">
+                            <i class="bi bi-exclamation-triangle text-danger me-2"></i>Xác nhận xóa
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        Bạn có chắc chắn muốn xóa phòng <strong>{{ room.name }}</strong> không?
+                        <div class="text-danger small mt-1">Hành động này không thể hoàn tác.</div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                        <form method="post" action="{% url 'room_delete' room.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="bi bi-trash me-1"></i>Xóa
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="card text-center py-5">
+    <div class="card-body">
+        <i class="bi bi-house-x" style="font-size:3rem; color:#d1d5db"></i>
+        <h5 class="mt-3 text-muted">Chưa có phòng nào</h5>
+        <p class="text-muted small">Nhấn "Thêm phòng" để bắt đầu quản lý dãy trọ của bạn</p>
+        <a href="{% url 'room_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Thêm phòng đầu tiên
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

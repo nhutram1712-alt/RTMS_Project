@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Thêm người dùng - RTMS{% endblock %}
+
+{% block page_title %}Thêm Người Dùng Mới{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Thông tin Khách thuê</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control {% if errors.username %}is-invalid{% endif %}" name="username" value="{{ post_data.username|default:'' }}" required {% if is_edit %}readonly{% endif %}>
+                            {% if errors.username %}
+                                <div class="invalid-feedback">{{ errors.username }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control {% if errors.email %}is-invalid{% endif %}" name="email" value="{{ post_data.email|default:'' }}" required>
+                            {% if errors.email %}
+                                <div class="invalid-feedback">{{ errors.email }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Mật khẩu {% if not is_edit %}<span class="text-danger">*</span>{% endif %}</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control {% if errors.password %}is-invalid{% endif %}" name="password" id="password" {% if not is_edit %}required{% endif %}>
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if errors.password %}
+                                    <div class="invalid-feedback">{{ errors.password }}</div>
+                                {% endif %}
+                            </div>
+                            {% if is_edit %}<small class="text-muted">Bỏ trống nếu không muốn đổi mật khẩu</small>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Xác nhận mật khẩu {% if not is_edit %}<span class="text-danger">*</span>{% endif %}</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control {% if errors.password_confirm %}is-invalid{% endif %}" name="password_confirm" id="password_confirm" {% if not is_edit %}required{% endif %}>
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password_confirm')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if errors.password_confirm %}
+                                    <div class="invalid-feedback">{{ errors.password_confirm }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Họ & Tên đệm <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control {% if errors.last_name %}is-invalid{% endif %}" name="last_name" value="{{ post_data.last_name|default:'' }}" required>
+                            {% if errors.last_name %}
+                                <div class="invalid-feedback">{{ errors.last_name }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tên <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control {% if errors.first_name %}is-invalid{% endif %}" name="first_name" value="{{ post_data.first_name|default:'' }}" required>
+                            {% if errors.first_name %}
+                                <div class="invalid-feedback">{{ errors.first_name }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">CCCD <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control {% if errors.cccd %}is-invalid{% endif %}" name="cccd" value="{{ post_data.cccd|default:'' }}" required>
+                            {% if errors.cccd %}
+                                <div class="invalid-feedback">{{ errors.cccd }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control {% if errors.phone %}is-invalid{% endif %}" name="phone" value="{{ post_data.phone|default:'' }}" required>
+                            {% if errors.phone %}
+                                <div class="invalid-feedback">{{ errors.phone }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Trạng thái hoạt động</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" checked>
+                            <label class="form-check-label" for="is_active">Kích hoạt tài khoản</label>
+                        </div>
+                        <small class="text-muted fst-italic">Ghi chú: Tài khoản tạo mới mặc định là Người thuê</small>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <a href="{% url 'user_list' %}" class="btn btn-secondary me-2">Hủy bỏ</a>
+                        <button type="submit" class="btn btn-primary">Lưu người dùng</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const icon = input.nextElementSibling.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+</script>
+{% endblock %}

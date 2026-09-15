@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% block title %}Tạo hóa đơn — Phòng {{ room.name }} — RTMS{% endblock %}
+{% block page_title %}Tạo hóa đơn — Phòng {{ room.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* Style riêng cho form hóa đơn */
+.readonly-field {
+    background: #f8fafc;
+    color: #64748b;
+    cursor: not-allowed;
+}
+.summary-card {
+    background: linear-gradient(135deg, #1e40af, #2563eb);
+    border-radius: 12px;
+    color: white;
+    padding: 1.25rem;
+    position: sticky; top: 80px;
+}
+.summary-card .summary-title {
+    font-size: 0.8rem; opacity: 0.8; text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 0.5rem;
+}
+.summary-row {
+    display: flex; justify-content: space-between;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 0.875rem;
+}
+.summary-row:last-of-type { border-bottom: none; }
+.summary-row .slabel { opacity: 0.8; }
+.summary-row .samount { font-weight: 500; }
+.summary-total-row {
+    display: flex; justify-content: space-between;
+    padding: 0.75rem 0 0;
+    border-top: 2px solid rgba(255,255,255,0.3);
+    font-weight: 700;
+}
+.summary-total-row .total-num { font-size: 1.25rem; }
+.input-readonly-block {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    font-size: 0.875rem;
+    color: #475569;
+}
+.input-readonly-block .val {
+    font-weight: 600; color: #1e293b;
+}
+.existing-notice {
+    background: #fef9c3; border: 1px solid #fde68a;
+    border-radius: 8px; padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <h5 class="mb-0 fw-bold" style="color:#1e293b">
+        Tạo hóa đơn — Phòng {{ room.name }}
+        <span class="text-muted fw-normal" style="font-size:0.875rem">
+            | Kỳ: {{ billing_month|date:"m/Y" }}
+        </span>
+    </h5>
+</div>
+
+{% if existing_invoice and existing_invoice.status != 'nhap' %}
+<div class="alert alert-warning d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>
+        Phòng <strong>{{ room.name }}</strong> đã có hóa đơn tháng
+        <strong>{{ billing_month|date:"m/Y" }}</strong>!
+        Không thể tạo thêm hóa đơn cho cùng tháng.
+    </span>
+    <a href="{% url 'invoice_list' %}" class="btn btn-sm btn-warning ms-auto">Xem hóa đơn</a>
+</div>
+{% else %}
+
+{% if existing_invoice and existing_invoice.status == 'nhap' %}
+<div class="existing-notice mb-3">
+    <i class="bi bi-info-circle me-2 text-warning"></i>
+    Đã có hóa đơn <strong>nháp</strong> tháng {{ billing_month|date:"m/Y" }}. Bạn có thể cập nhật và tạo chính thức.
+</div>
+{% endif %}
+
+<form method="post" id="invoiceForm" novalidate>
+    {% csrf_token %}
+    <div class="row g-3">
+
+        <!-- LEFT: Form nhập liệu -->
+        <div class="col-lg-7">
+
+            <!-- Thông tin readonly -->
+            <div class="section-card mb-3">
+                <div class="section-card-header">
+                    <i class="bi bi-house" style="color:#2563eb"></i>
+                    Thông tin phòng (Chỉ đọc)
+                </div>
+                <div class="section-card-body">
+                    <div class="row g-3">
+                        <div class="col-4">
+                            <div class="form-label" style="font-size:0.8rem;color:#64748b">Số phòng</div>
+                            <div class="input-readonly-block"><span class="val">{{ room.name }}</span></div>
+                        </div>
+                        <div class="col-4">
+                            <div class="form-label" style="font-size:0.8rem;color:#64748b">Tiền thuê</div>
+                            <div class="input-readonly-block"><span class="val">{{ room.base_rent|floatformat:0 }} đ</span></div>
+                        </div>
+                        <div class="col-4">
+                            <div class="form-label" style="font-size:0.8rem;color:#64748b">Đơn giá điện</div>
+                            <div class="input-readonly-block"><span class="val">{{ room.electricity_price|floatformat:0 }} đ/kWh</span></div>
+                        </div>
+                        <div class="col-4">
+                            <div class="form-label" style="font-size:0.8rem;color:#64748b">Đơn giá nước</div>
+                            <div class="input-readonly-block"><span class="val">{{ room.water_price|floatformat:0 }} đ/m³</span></div>
+                        </div>
+                        <div class="col-4">
+                            <div class="form-label" style="font-size:0.8rem;color:#64748b">Chỉ số điện cũ</div>
+                            <div class="input-readonly-block"><span class="val">{{ old_electricity|floatformat:0 }} kWh</span></div>
+                        </div>
+                        <div class="col-4">
+                            <div class="form-label" style="font-size:0.8rem;color:#64748b">Chỉ số nước cũ</div>
+                            <div class="input-readonly-block"><span class="val">{{ old_water|floatformat:0 }} khối</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nhập chỉ số mới (US03) -->
+            <div class="section-card mb-3">
+                <div class="section-card-header">
+                    <i class="bi bi-lightning-charge" style="color:#f59e0b"></i>
+                    Ghi nhận chỉ số điện, nước (US03)
+                </div>
+                <div class="section-card-body">
+                    {% if errors.duplicate %}
+                    <div class="alert alert-danger py-2">{{ errors.duplicate }}</div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        <!-- Chỉ số điện mới -->
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_new_elec">
+                                Chỉ số điện mới (kWh) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" step="any"
+                                   class="form-control {% if errors.new_electricity %}is-invalid{% endif %}"
+                                   id="id_new_elec" name="new_electricity"
+                                   value="{{ post_data.new_electricity|default:'' }}{% if existing_invoice and not post_data %}{{ existing_invoice.new_electricity }}{% endif %}"
+                                   placeholder="Nhập chỉ số mới"
+                                   oninput="updatePreview()">
+                            {% if errors.new_electricity %}
+                            <div class="invalid-feedback">{{ errors.new_electricity }}</div>
+                            {% endif %}
+                            <div class="form-text small text-muted">Phải ≥ {{ old_electricity|floatformat:0 }} kWh</div>
+                        </div>
+
+                        <!-- Chỉ số nước mới -->
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_new_water">
+                                Chỉ số nước mới (khối) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" step="any"
+                                   class="form-control {% if errors.new_water %}is-invalid{% endif %}"
+                                   id="id_new_water" name="new_water"
+                                   value="{{ post_data.new_water|default:'' }}{% if existing_invoice and not post_data %}{{ existing_invoice.new_water }}{% endif %}"
+                                   placeholder="Nhập chỉ số mới"
+                                   oninput="updatePreview()">
+                            {% if errors.new_water %}
+                            <div class="invalid-feedback">{{ errors.new_water }}</div>
+                            {% endif %}
+                            <div class="form-text small text-muted">Phải ≥ {{ old_water|floatformat:0 }} khối</div>
+                        </div>
+
+                        <!-- Phụ phí (optional) -->
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_extra_fee">
+                                Phụ phí (đ)
+                                <span class="text-muted" style="font-size:0.75rem">- Không bắt buộc</span>
+                            </label>
+                            <input type="number" step="any"
+                                   class="form-control {% if errors.extra_fee %}is-invalid{% endif %}"
+                                   id="id_extra_fee" name="extra_fee"
+                                   value="{{ post_data.extra_fee|default:'0' }}{% if existing_invoice and not post_data %}{{ existing_invoice.extra_fee }}{% endif %}"
+                                   placeholder="0"
+                                   oninput="updatePreview()">
+                            {% if errors.extra_fee %}
+                            <div class="invalid-feedback">{{ errors.extra_fee }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Lý do phụ phí -->
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_extra_reason">Lý do phụ phí</label>
+                            <input type="text" class="form-control"
+                                   id="id_extra_reason" name="extra_fee_reason"
+                                   value="{{ post_data.extra_fee_reason|default:'' }}{% if existing_invoice and not post_data %}{{ existing_invoice.extra_fee_reason }}{% endif %}"
+                                   placeholder="VD: Sửa khóa cửa...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- end col-lg-7 -->
+
+        <!-- RIGHT: Bảng tóm tắt (US05) -->
+        <div class="col-lg-5">
+            <div class="summary-card">
+                <div class="summary-title">
+                    <i class="bi bi-calculator me-1"></i>Bảng tóm tắt hóa đơn (US05)
+                </div>
+                <div class="summary-row">
+                    <span class="slabel">Kỳ thanh toán</span>
+                    <span class="samount">{{ billing_month|date:"m/Y" }}</span>
+                </div>
+                <div class="summary-row">
+                    <span class="slabel">Tiền phòng</span>
+                    <span class="samount" id="sum_rent">{{ room.base_rent|floatformat:0 }} đ</span>
+                </div>
+                <div class="summary-row">
+                    <span class="slabel">Tiền điện</span>
+                    <span class="samount" id="sum_elec">0 đ</span>
+                </div>
+                <div class="summary-row">
+                    <span class="slabel">Tiền nước</span>
+                    <span class="samount" id="sum_water">0 đ</span>
+                </div>
+                <div class="summary-row">
+                    <span class="slabel">Dịch vụ (Rác + Internet)</span>
+                    <span class="samount" id="sum_service">{{ room.trash_price|floatformat:0 }}+{{ room.internet_price|floatformat:0 }} đ</span>
+                </div>
+                <div class="summary-row">
+                    <span class="slabel">Phụ phí</span>
+                    <span class="samount" id="sum_extra">0 đ</span>
+                </div>
+                <div class="summary-total-row">
+                    <span>TỔNG CỘNG</span>
+                    <!-- Readonly theo SRS E5.3: không cho người dùng sửa tay -->
+                    <span class="total-num" id="sum_total">{{ room.base_rent|floatformat:0 }} đ</span>
+                </div>
+
+                <div class="mt-3 d-flex flex-column gap-2">
+                    <!-- Nút tạo hóa đơn chính thức -->
+                    <button type="submit" name="action" value="create" class="btn btn-light fw-bold">
+                        <i class="bi bi-receipt me-2"></i>Tạo hóa đơn
+                    </button>
+                    <!-- Nút lưu nháp -->
+                    <button type="submit" name="action" value="draft" class="btn btn-outline-light">
+                        <i class="bi bi-save me-2"></i>Lưu nháp
+                    </button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-link text-white text-center" style="opacity:0.7">Hủy</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============================================================
+// Dữ liệu từ phòng (server-side) để tính preview
+// ============================================================
+const ROOM_DATA = {
+    base_rent: {{ room.base_rent }},
+    electricity_price: {{ room.electricity_price }},
+    water_price: {{ room.water_price }},
+    trash_price: {{ room.trash_price }},
+    internet_price: {{ room.internet_price }},
+    old_electricity: {{ old_electricity }},
+    old_water: {{ old_water }},
+};
+
+// Format số thành dạng đồng VN
+function formatVND(num) {
+    return Math.round(num).toLocaleString('vi-VN') + ' đ';
+}
+
+// ============================================================
+// Tính preview hóa đơn realtime (US05)
+// Gọi khi người dùng nhập chỉ số điện/nước/phụ phí
+// ============================================================
+function updatePreview() {
+    const newElec = parseFloat(document.getElementById('id_new_elec').value) || 0;
+    const newWater = parseFloat(document.getElementById('id_new_water').value) || 0;
+    const extraFee = parseFloat(document.getElementById('id_extra_fee').value) || 0;
+
+    // Tiền điện = (mới - cũ) × đơn giá
+    const elecCost = Math.max(0, (newElec - ROOM_DATA.old_electricity)) * ROOM_DATA.electricity_price;
+    // Tiền nước = (mới - cũ) × đơn giá
+    const waterCost = Math.max(0, (newWater - ROOM_DATA.old_water)) * ROOM_DATA.water_price;
+    // Dịch vụ = rác + internet
+    const serviceCost = ROOM_DATA.trash_price + ROOM_DATA.internet_price;
+    // Tổng = phòng + điện + nước + dịch vụ + phụ phí
+    const total = ROOM_DATA.base_rent + elecCost + waterCost + serviceCost + extraFee;
+
+    // Cập nhật bảng tóm tắt (readonly — không cho sửa tay E5.3)
+    document.getElementById('sum_rent').textContent = formatVND(ROOM_DATA.base_rent);
+    document.getElementById('sum_elec').textContent = formatVND(elecCost);
+    document.getElementById('sum_water').textContent = formatVND(waterCost);
+    document.getElementById('sum_service').textContent = formatVND(serviceCost);
+    document.getElementById('sum_extra').textContent = formatVND(extraFee);
+    document.getElementById('sum_total').textContent = formatVND(total);
+}
+
+// Khởi tạo ngay khi load
+updatePreview();
+
+// ============================================================
+// Client-side validation biên giới (US03)
+// ============================================================
+document.getElementById('invoiceForm')?.addEventListener('submit', function(e) {
+    const newElec = parseFloat(document.getElementById('id_new_elec').value);
+    const newWater = parseFloat(document.getElementById('id_new_water').value);
+    let valid = true;
+
+    // Reset lỗi cũ
+    ['id_new_elec', 'id_new_water'].forEach(id => {
+        document.getElementById(id).classList.remove('is-invalid');
+    });
+
+    // Kiểm tra chỉ số điện mới >= cũ
+    if (!isNaN(newElec) && newElec < ROOM_DATA.old_electricity) {
+        document.getElementById('id_new_elec').classList.add('is-invalid');
+        valid = false;
+    }
+    // Kiểm tra chỉ số nước mới >= cũ
+    if (!isNaN(newWater) && newWater < ROOM_DATA.old_water) {
+        document.getElementById('id_new_water').classList.add('is-invalid');
+        valid = false;
+    }
+
+    if (!valid) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

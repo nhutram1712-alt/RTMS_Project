@@ -1,0 +1,439 @@
+{% extends 'base.html' %}
+{% block title %}{% if is_edit and room %}Sửa phòng {{ room.name }}{% else %}Thêm phòng mới{% endif %} — RTMS{% endblock %}
+{% block page_title %}{% if is_edit and room %}Chỉnh sửa phòng {{ room.name }}{% else %}Thêm phòng mới{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <h5 class="mb-0 fw-bold" style="color:#1e293b">
+        {% if is_edit and room %}Chỉnh sửa phòng {{ room.name }}{% else %}Thêm phòng mới{% endif %}
+    </h5>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="roomForm" novalidate>
+    {% csrf_token %}
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+
+            <!-- ===== SECTION 1: THÔNG TIN CƠ BẢN ===== -->
+            <div class="section-card">
+                <div class="section-card-header">
+                    <i class="bi bi-info-circle" style="color:#2563eb"></i>
+                    Thông tin cơ bản
+                </div>
+                <div class="section-card-body">
+                    <div class="row g-3">
+                        <!-- Tên phòng -->
+                        <div class="col-md-4">
+                            <label class="form-label" for="id_name">Tên phòng <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control {% if errors.name %}is-invalid{% endif %}"
+                                   id="id_name" name="name"
+                                   value="{% if post_data %}{{ post_data.name }}{% elif room %}{{ room.name }}{% endif %}"
+                                   placeholder="VD: 101, 205">
+                            {% if errors.name %}
+                            <div class="invalid-feedback">{{ errors.name }}</div>
+                            {% endif %}
+                            <div class="form-text text-muted" style="font-size:0.75rem">
+                                Chỉ được nhập số. Số đầu = số tầng.
+                            </div>
+                        </div>
+
+                        <!-- Tầng -->
+                        <div class="col-md-4">
+                            <label class="form-label" for="id_floor">Tầng <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control {% if errors.floor %}is-invalid{% endif %}"
+                                   id="id_floor" name="floor"
+                                   value="{% if post_data %}{{ post_data.floor }}{% elif room %}{{ room.floor }}{% endif %}"
+                                   min="0" max="99" placeholder="0-99">
+                            {% if errors.floor %}
+                            <div class="invalid-feedback">{{ errors.floor }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Diện tích -->
+                        <div class="col-md-4">
+                            <label class="form-label" for="id_area">Diện tích (m²) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control {% if errors.area %}is-invalid{% endif %}"
+                                   id="id_area" name="area"
+                                   value="{% if post_data %}{{ post_data.area }}{% elif room %}{{ room.area }}{% endif %}"
+                                   placeholder="VD: 20.5">
+                            {% if errors.area %}
+                            <div class="invalid-feedback">{{ errors.area }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Giá thuê -->
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_base_rent">Giá thuê (đ/tháng) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control {% if errors.base_rent %}is-invalid{% endif %}"
+                                   id="id_base_rent" name="base_rent"
+                                   value="{% if post_data %}{{ post_data.base_rent }}{% elif room %}{{ room.base_rent }}{% endif %}"
+                                   placeholder="VD: 2500000">
+                            {% if errors.base_rent %}
+                            <div class="invalid-feedback">{{ errors.base_rent }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Số người tối đa (stepper) -->
+                        <div class="col-md-6">
+                            <label class="form-label">Số người tối đa <span class="text-danger">*</span></label>
+                            <div class="stepper-input">
+                                <button type="button" onclick="stepChange('id_max_occ', -1)">
+                                    <i class="bi bi-dash"></i>
+                                </button>
+                                <input type="number" id="id_max_occ" name="max_occupancy"
+                                       value="{% if post_data %}{{ post_data.max_occupancy }}{% elif room %}{{ room.max_occupancy }}{% endif %}"
+                                       min="1" readonly>
+                                <button type="button" onclick="stepChange('id_max_occ', 1)">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Trạng thái phòng -->
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_status">Trạng thái phòng <span class="text-danger">*</span></label>
+                            <select class="form-select" id="id_status" name="status">
+                                {% for val, label in status_choices %}
+                                <option value="{{ val }}" {% if post_data.status == val or room and room.status == val %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Tiện nghi (checkbox) -->
+                    <div class="mt-3">
+                        <label class="form-label">Tiện nghi phòng</label>
+                        <div class="row g-2">
+                            {% for val, label in amenity_choices %}
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           name="amenities" value="{{ val }}"
+                                           id="amenity_{{ val }}"
+                                           {% if val in selected_amenities %}checked{% endif %}>
+                                    <label class="form-check-label" for="amenity_{{ val }}" style="font-size:0.85rem">
+                                        {{ label }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== SECTION 2: ĐƠN GIÁ & CHỈ SỐ (US04) ===== -->
+            <div class="section-card">
+                <div class="section-card-header">
+                    <i class="bi bi-lightning-charge" style="color:#f59e0b"></i>
+                    Đơn giá & Chỉ số dịch vụ
+                </div>
+                <div class="section-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_electricity_price">
+                                Đơn giá điện (đ/kWh) <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control {% if errors.electricity_price %}is-invalid{% endif %}"
+                                   id="id_electricity_price" name="electricity_price"
+                                   value="{% if post_data %}{{ post_data.electricity_price }}{% elif room %}{{ room.electricity_price }}{% endif %}"
+                                   placeholder="VD: 3500">
+                            {% if errors.electricity_price %}
+                            <div class="invalid-feedback">{{ errors.electricity_price }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_water_price">
+                                Đơn giá nước (đ/m³) <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control {% if errors.water_price %}is-invalid{% endif %}"
+                                   id="id_water_price" name="water_price"
+                                   value="{% if post_data %}{{ post_data.water_price }}{% elif room %}{{ room.water_price }}{% endif %}"
+                                   placeholder="VD: 15000">
+                            {% if errors.water_price %}
+                            <div class="invalid-feedback">{{ errors.water_price }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_current_electricity">
+                                Chỉ số điện đầu (kWh)
+                            </label>
+                            <input type="text" class="form-control {% if errors.current_electricity %}is-invalid{% endif %}"
+                                   id="id_current_electricity" name="current_electricity"
+                                   value="{% if post_data %}{{ post_data.current_electricity }}{% elif room %}{{ room.current_electricity }}{% endif %}"
+                                   placeholder="VD: 1250">
+                            {% if errors.current_electricity %}
+                            <div class="invalid-feedback">{{ errors.current_electricity }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_current_water">
+                                Chỉ số nước đầu (khối)
+                            </label>
+                            <input type="text" class="form-control {% if errors.current_water %}is-invalid{% endif %}"
+                                   id="id_current_water" name="current_water"
+                                   value="{% if post_data %}{{ post_data.current_water }}{% elif room %}{{ room.current_water }}{% endif %}"
+                                   placeholder="VD: 50">
+                            {% if errors.current_water %}
+                            <div class="invalid-feedback">{{ errors.current_water }}</div>
+                            {% endif %}
+                        </div>
+                        <!-- Phí rác (US04) -->
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_trash_price">
+                                Phí rác (đ/tháng) <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control {% if errors.trash_price %}is-invalid{% endif %}"
+                                   id="id_trash_price" name="trash_price"
+                                   value="{% if post_data %}{{ post_data.trash_price }}{% elif room %}{{ room.trash_price }}{% endif %}"
+                                   placeholder="VD: 20000">
+                            {% if errors.trash_price %}
+                            <div class="invalid-feedback">{{ errors.trash_price }}</div>
+                            {% endif %}
+                        </div>
+                        <!-- Phí internet (US04) -->
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_internet_price">
+                                Phí internet (đ/tháng) <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control {% if errors.internet_price %}is-invalid{% endif %}"
+                                   id="id_internet_price" name="internet_price"
+                                   value="{% if post_data %}{{ post_data.internet_price }}{% elif room %}{{ room.internet_price }}{% endif %}"
+                                   placeholder="VD: 100000">
+                            {% if errors.internet_price %}
+                            <div class="invalid-feedback">{{ errors.internet_price }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== SECTION 3: THÔNG TIN NGƯỜI THUÊ (US01) ===== -->
+            <!-- Card này Enable/Disable theo status bằng JavaScript -->
+            <div class="section-card" id="tenantCard">
+                <div class="section-card-header">
+                    <i class="bi bi-person-fill" style="color:#8b5cf6"></i>
+                    Thông tin người thuê
+                    <span id="tenantCardBadge" class="ms-2 badge" style="font-size:0.65rem"></span>
+                </div>
+                <div class="section-card-body" id="tenantCardBody">
+                    {% if errors.duplicate %}
+                    <div class="alert alert-danger py-2 mb-3">{{ errors.duplicate }}</div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        <!-- Người thuê -->
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_tenant">
+                                Người thuê <span class="text-danger" id="tenantRequired">*</span>
+                            </label>
+                            <select class="form-select {% if errors.tenant_id %}is-invalid{% endif %}"
+                                    id="id_tenant" name="tenant_id">
+                                <option value="">-- Chọn người thuê --</option>
+                                {% for t in tenants %}
+                                <option value="{{ t.id }}"
+                                    {% if post_data.tenant_id == t.id|stringformat:"s" %}selected
+                                    {% elif assignment and assignment.tenant and assignment.tenant.id == t.id %}selected
+                                    {% endif %}>
+                                    {{ t.get_full_name|default:t.username }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if errors.tenant_id %}
+                            <div class="invalid-feedback">{{ errors.tenant_id }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Ngày nhận phòng (không cho chọn ngày quá khứ) -->
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_move_in">
+                                Ngày nhận phòng <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" class="form-control {% if errors.move_in_date %}is-invalid{% endif %}"
+                                   id="id_move_in" name="move_in_date"
+                                   value="{{ post_data.move_in_date|default:'' }}{% if assignment and not post_data %}{{ assignment.move_in_date|date:'Y-m-d' }}{% endif %}"
+                                   min="{{ today_str }}">
+                            {% if errors.move_in_date %}
+                            <div class="invalid-feedback">{{ errors.move_in_date }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Thời hạn thuê -->
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_lease_dur">
+                                Thời hạn thuê (tháng) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control {% if errors.lease_duration %}is-invalid{% endif %}"
+                                   id="id_lease_dur" name="lease_duration"
+                                   value="{{ post_data.lease_duration|default:'' }}{% if assignment and not post_data %}{{ assignment.lease_duration }}{% endif %}"
+                                   min="1" placeholder="VD: 12">
+                            {% if errors.lease_duration %}
+                            <div class="invalid-feedback">{{ errors.lease_duration }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Tiền cọc -->
+                        <div class="col-md-6">
+                            <label class="form-label" for="id_deposit">
+                                Tiền cọc (đ) <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control {% if errors.deposit %}is-invalid{% endif %}"
+                                   id="id_deposit" name="deposit"
+                                   value="{{ post_data.deposit|default:'' }}{% if assignment and not post_data %}{{ assignment.deposit }}{% endif %}"
+                                   placeholder="VD: 5000000">
+                            {% if errors.deposit %}
+                            <div class="invalid-feedback">{{ errors.deposit }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Ảnh hợp đồng -->
+                        <div class="col-md-12">
+                            <label class="form-label" for="id_contract_img">
+                                Ảnh hợp đồng
+                                <span class="text-muted" style="font-size:0.75rem">(jpg, png, webp — không bắt buộc)</span>
+                            </label>
+                            {% if assignment and assignment.contract_image %}
+                            <div class="mb-2">
+                                <img src="{{ assignment.contract_image.url }}" style="max-height:80px; border-radius:6px">
+                                <span class="ms-2 text-muted small">Ảnh hiện tại</span>
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" id="id_contract_img"
+                                   name="contract_image" accept=".jpg,.jpeg,.png,.webp">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- end col-lg-8 -->
+
+        <!-- Sidebar bên phải -->
+        <div class="col-lg-4">
+            <div class="section-card position-sticky" style="top: 80px">
+                <div class="section-card-header">
+                    <i class="bi bi-save" style="color:#2563eb"></i>
+                    Lưu thông tin
+                </div>
+                <div class="section-card-body">
+                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-save me-2"></i>
+                        {% if is_edit %}Lưu thay đổi{% else %}Thêm phòng{% endif %}
+                    </button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-x-circle me-2"></i>Hủy bỏ
+                    </a>
+
+                    {% if is_edit and room and room.can_delete %}
+                    <hr>
+                    <button type="button" class="btn btn-outline-danger w-100 btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#deleteModalForm">
+                        <i class="bi bi-trash me-1"></i>Xóa phòng {{ room.name }}
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end row -->
+</form>
+
+{% if is_edit and room and room.can_delete %}
+<div class="modal fade" id="deleteModalForm" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Xác nhận xóa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Bạn có chắc chắn muốn xóa phòng <strong>{{ room.name }}</strong> không?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                <form method="post" action="{% url 'room_delete' room.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash me-1"></i>Xóa
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============================================================
+// Stepper input (số người tối đa)
+// ============================================================
+function stepChange(inputId, delta) {
+    const input = document.getElementById(inputId);
+    let val = parseInt(input.value) || 1;
+    val = Math.max(1, val + delta);  // Không cho nhỏ hơn 1
+    input.value = val;
+}
+
+// ============================================================
+// Toggle tenant card theo status (US01 - E1.4)
+// JS chạy ngay khi người dùng thay đổi dropdown status
+// ============================================================
+const statusSelect = document.getElementById('id_status');
+const tenantCard = document.getElementById('tenantCard');
+const tenantCardBody = document.getElementById('tenantCardBody');
+const tenantBadge = document.getElementById('tenantCardBadge');
+const tenantFields = ['id_tenant', 'id_move_in', 'id_lease_dur', 'id_deposit', 'id_contract_img'];
+
+function updateTenantCard(status) {
+    const needTenant = ['dang_thue', 'da_coc'].includes(status);
+
+    if (needTenant) {
+        // Enable card người thuê — bắt buộc nhập
+        tenantCard.classList.remove('tenant-card-disabled');
+        tenantCardBody.style.opacity = '1';
+        tenantCardBody.style.pointerEvents = 'auto';
+        tenantBadge.textContent = 'Bắt buộc';
+        tenantBadge.className = 'ms-2 badge bg-danger';
+        tenantFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && id !== 'id_contract_img') el.required = true;
+        });
+    } else {
+        // Disable card người thuê — không bắt buộc
+        tenantCard.classList.add('tenant-card-disabled');
+        tenantCardBody.style.opacity = '0.4';
+        tenantCardBody.style.pointerEvents = 'none';
+        tenantBadge.textContent = 'Không áp dụng';
+        tenantBadge.className = 'ms-2 badge bg-secondary';
+        tenantFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.required = false;
+        });
+    }
+}
+
+// Khởi tạo khi load trang
+updateTenantCard(statusSelect.value);
+
+// Lắng nghe khi đổi status
+statusSelect.addEventListener('change', function() {
+    updateTenantCard(this.value);
+});
+
+// Đặt min date cho datepicker ngày nhận phòng = hôm nay
+const moveInInput = document.getElementById('id_move_in');
+if (moveInInput) {
+    const today = new Date().toISOString().split('T')[0];
+    moveInInput.min = today;
+}
+</script>
+{% endblock %}

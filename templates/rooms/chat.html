@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block title %}Tin nhắn — RTMS{% endblock %}
+{% block page_title %}Trò chuyện{% endblock %}
+
+{% block content %}
+<div class="row h-100" style="min-height: 60vh;">
+    {% if is_owner %}
+    <!-- Sidebar danh sách phòng cho chủ trọ -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white pt-4 pb-2 border-0">
+                <h6 class="fw-bold text-primary mb-0"><i class="bi bi-people me-2"></i>Chọn khách thuê</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for room in active_rooms %}
+                    {% with ta=room.tenant_assignment %}
+                        {% if ta %}
+                        <a href="?tenant_id={{ ta.tenant.id }}" class="list-group-item list-group-item-action py-3 {% if selected_tenant and selected_tenant.id == ta.tenant.id %}active bg-primary bg-opacity-10 text-primary border-primary{% endif %}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1 fw-bold">{{ ta.tenant.get_full_name|default:ta.tenant.username }}</h6>
+                            </div>
+                            <p class="mb-1 small">Phòng {{ room.name }}</p>
+                        </a>
+                        {% endif %}
+                    {% endwith %}
+                    {% empty %}
+                    <div class="p-4 text-center text-muted">
+                        <small>Chưa có phòng nào đang thuê để chat.</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Khung Chat -->
+    <div class="{% if is_owner %}col-md-8{% else %}col-md-12{% endif %} mb-4">
+        {% if not is_owner or selected_tenant %}
+        <div class="card shadow-sm border-0 h-100 d-flex flex-column">
+            <div class="card-header bg-white pt-4 pb-3 border-bottom d-flex align-items-center">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                    <i class="bi bi-person-fill fs-5"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0">
+                        {% if is_owner %}
+                            {{ selected_tenant.get_full_name|default:selected_tenant.username }}
+                        {% else %}
+                            Chủ trọ ({{ chat_partner.get_full_name|default:chat_partner.username }})
+                        {% endif %}
+                    </h6>
+                </div>
+            </div>
+            
+            <div class="card-body bg-light flex-grow-1 overflow-auto" id="chat-messages" style="height: 400px; max-height: 400px;">
+                <!-- Messages will be loaded here via JS -->
+                <div class="text-center text-muted mt-5">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="small mt-2">Đang tải tin nhắn...</p>
+                </div>
+            </div>
+            
+            <div class="card-footer bg-white border-top-0 p-3">
+                <form id="chat-form" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <input type="text" id="chat-input" class="form-control bg-light rounded-pill px-4" placeholder="Nhập tin nhắn..." autocomplete="off">
+                    <button type="submit" class="btn btn-primary rounded-circle" style="width: 46px; height: 46px; flex-shrink: 0;">
+                        <i class="bi bi-send-fill"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="card border-0 shadow-sm h-100 d-flex align-items-center justify-content-center bg-light">
+            <div class="text-center text-muted">
+                <i class="bi bi-chat-dots" style="font-size:4rem; color:#d1d5db"></i>
+                <h5 class="mt-3">Chọn một người thuê để bắt đầu trò chuyện</h5>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if not is_owner or selected_tenant %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatBox = document.getElementById('chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        const partnerId = {% if is_owner %}{{ selected_tenant.id }}{% else %}{{ chat_partner.id }}{% endif %};
+        const currentUserId = {{ request.user.id }};
+        
+        let lastMessageCount = 0;
+
+        function loadMessages() {
+            fetch(`/chat/api/?partner_id=${partnerId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.messages && data.messages.length !== lastMessageCount) {
+                        lastMessageCount = data.messages.length;
+                        chatBox.innerHTML = ''; // Clear loading
+                        
+                        if (data.messages.length === 0) {
+                            chatBox.innerHTML = '<div class="text-center text-muted mt-5 small">Chưa có tin nhắn nào. Bắt đầu trò chuyện!</div>';
+                            return;
+                        }
+
+                        data.messages.forEach(msg => {
+                            const isMe = msg.sender_id === currentUserId;
+                            const alignClass = isMe ? 'justify-content-end' : 'justify-content-start';
+                            const bgClass = isMe ? 'bg-primary text-white' : 'bg-white border';
+                            const textClass = isMe ? 'text-white-50' : 'text-muted';
+                            
+                            const msgHtml = `
+                                <div class="d-flex ${alignClass} mb-3">
+                                    <div class="${bgClass} rounded-3 py-2 px-3 shadow-sm" style="max-width: 75%;">
+                                        <div style="word-break: break-word;">${msg.content}</div>
+                                        <div class="small ${textClass} mt-1 text-end" style="font-size: 0.7rem;">${msg.created_at}</div>
+                                    </div>
+                                </div>
+                            `;
+                            chatBox.innerHTML += msgHtml;
+                        });
+                        
+                        // Scroll to bottom
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        // Send message
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const content = chatInput.value.trim();
+            if (!content) return;
+            
+            chatInput.disabled = true;
+            
+            const formData = new FormData();
+            formData.append('partner_id', partnerId);
+            formData.append('content', content);
+            
+            fetch('/chat/api/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                if(data.status === 'ok') {
+                    chatInput.value = '';
+                    loadMessages();
+                }
+            })
+            .finally(() => {
+                chatInput.disabled = false;
+                chatInput.focus();
+            });
+        });
+
+        // Initial load
+        loadMessages();
+        
+        // Poll every 3 seconds
+        setInterval(loadMessages, 3000);
+    });
+</script>
+{% endif %}
+{% endblock %}
